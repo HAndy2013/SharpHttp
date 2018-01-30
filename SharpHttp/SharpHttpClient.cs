@@ -20,6 +20,24 @@ namespace SharpHttp
         #endregion
 
         #region - PUBLIC PROPS -
+
+        public bool UserProxy
+        {
+            get
+            {
+                if (_clientHandler != null)
+                {
+                    return _clientHandler.UseProxy;
+                }
+                return false;
+            }
+            set
+            {
+                if (_clientHandler != null)
+                    _clientHandler.UseProxy = value;
+            }
+        }
+
         public bool AcceptCookie
         {
             get
