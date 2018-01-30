@@ -11,7 +11,7 @@ using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using System.Xml.Linq;
 
-namespace SharpHttpClient
+namespace SharpHttp
 {
     public class HttpResponse
     {
@@ -30,7 +30,17 @@ namespace SharpHttpClient
             }
         }
 
-        public string ResponseString
+        public string ResponseRawString
+        {
+            get
+            {
+                var task = _resp.Content.ReadAsStringAsync();
+                task.Wait();
+                return task.Result;
+            }
+        }
+
+        public string Charset
         {
             get
             {
@@ -45,7 +55,8 @@ namespace SharpHttpClient
                     {
                         var arr = match.Value.Split(new[] { ' ', ';', '=', '"' }, StringSplitOptions.RemoveEmptyEntries);
                         var idx = arr.ToList().IndexOf("charset") + 1;
-                        if (arr.Count() > idx) {
+                        if (arr.Count() > idx)
+                        {
                             charset = arr[idx];
                         }
                     }
@@ -54,40 +65,62 @@ namespace SharpHttpClient
                 {
                     charset = "utf-8";
                 }
-
-                if (charset.ToLower().Contains("utf-8"))
-                {
-                    return utf8String;
-                }
-                else
-                {
-                    var encoding = Encoding.GetEncoding(charset);
-                    if (encoding != null)
-                    {
-                        return encoding.GetString(bytes);
-                    }
-                    return Encoding.UTF8.GetString(bytes);
-                }
+                return charset;
             }
         }
 
+        private string _responseString;
+        public string ResponseString
+        {
+            get
+            {
+                if (string.IsNullOrEmpty(_responseString))
+                {
+                    var charset = ContentHeaders.ContentType.CharSet;
+                    var bytes = ResponseByteArray;
+                    var utf8String = Encoding.UTF8.GetString(bytes);
+
+                    var encoding = Encoding.GetEncoding(Charset);
+                    if (encoding != null)
+                    {
+                        _responseString = encoding.GetString(bytes);
+                    }
+                    else
+                    {
+                        _responseString = Encoding.UTF8.GetString(bytes);
+                    }
+                }
+                return _responseString;
+            }
+        }
+
+        private byte[] _responseByteArray;
         public byte[] ResponseByteArray
         {
             get
             {
-                var task = _resp.Content.ReadAsByteArrayAsync();
-                task.Wait();
-                return task.Result;
+                if (_responseByteArray == null)
+                {
+                    var task = _resp.Content.ReadAsByteArrayAsync();
+                    task.Wait();
+                    _responseByteArray = task.Result;
+                }
+                return _responseByteArray;
             }
         }
 
+        private Stream _responseStream;
         public Stream ResponseStream
         {
             get
             {
-                var task = _resp.Content.ReadAsStreamAsync();
-                task.Wait();
-                return task.Result;
+                if (_responseStream == null)
+                {
+                    var task = _resp.Content.ReadAsStreamAsync();
+                    task.Wait();
+                    _responseStream = task.Result;
+                }
+                return _responseStream;
             }
         }
         
